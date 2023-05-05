@@ -1,1 +1,209 @@
+import json
+import pdfplumber
+import nltk
+nltk.download('punkt')
+import requests
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
+# Load the screenplay PDF and extract the sentences
+def get_screenplay_sentences(screenplay_file):
+    with pdfplumber.open(screenplay_file) as pdf:
+        text = ''
+        for page in pdf.pages:
+            extracted_text = page.extract_text()
+            if extracted_text is not None:
+                text += extracted_text.replace('\n', ' ').strip() + ' '
+        sentences = nltk.sent_tokenize(text)
+    return sentences
+
+# GPT-3 API settings (replace with your API key)
+API_KEY = "OPEN AI KEY"
+API_URL = "https://api.openai.com/v1/engines/text-davinci-002/completions"
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json",
+}
+
+def gpt3_request(prompt):
+    data = {
+        "prompt": prompt,
+        "max_tokens": 10,
+        "n": 1,
+        "stop": ["\n"],
+        "temperature": 0.5,
+    }
+
+    response = requests.post(API_URL, headers=HEADERS, json=data)
+    if response.status_code == 200:
+        result = json.loads(response.text)
+        generated_text = result["choices"][0]["text"].strip()
+
+        # Retry the API call if the response is an empty string or not a valid number
+        while not generated_text.isdigit():
+            response = requests.post(API_URL, headers=HEADERS, json=data)
+            if response.status_code == 200:
+                result = json.loads(response.text)
+                generated_text = result["choices"][0]["text"].strip()
+            else:
+                print(f"Error: GPT-3 API request failed with status code {response.status_code}")
+                return None
+
+        return generated_text
+    else:
+        print(f"Error: GPT-3 API request failed with status code {response.status_code}")
+        return None
+
+# Functions to analyze each criterion using GPT-3
+def analyze_story_premise(sentences, ratings):
+    prompt = f"Rate the story premise of the following screenplay excerpt from 1 to 10:\n{sentences[0]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings["Story Premise"] = rating
+    print(f"Story Premise: {rating}")
+    return rating
+
+# Function to calculate ratings for each criterion
+def calculate_ratings(sentences, ratings):
+    ratings = {
+        "Story Premise": 0,
+        "Characters": 0,
+        "Genre": 0,
+        "Structure": 0,
+        "Dialogue": 0,
+        "Emotional Impact": 0,
+        "Theme": 0,
+        "Visual Imagery": 0,
+        "Marketability": 0,
+        "Cultural Relevance": 0,
+        "Production Feasibility": 0,
+        "Global Appeal": 0
+    }
+    # Call each analysis function to update the ratings dictionary
+    ratings["Story Premise"] = analyze_story_premise(sentences, ratings)
+    ratings["Characters"] = analyze_characters(sentences, ratings)
+    ratings["Genre"] = analyze_genre(sentences, ratings)
+    ratings["Structure"] = analyze_structure(sentences, ratings)
+    ratings["Dialogue"] = analyze_dialogue(sentences, ratings)
+    ratings["Emotional Impact"] = analyze_emotional_impact(sentences, ratings)
+    ratings["Theme"] = analyze_theme(sentences, ratings)
+    ratings["Visual Imagery"] = analyze_visual_imagery(sentences, ratings)
+    ratings["Marketability"] = analyze_marketability(sentences, ratings)
+    ratings["Cultural Relevance"] = analyze_cultural_relevance(sentences, ratings)
+    ratings["Production Feasibility"] = analyze_production_feasibility(sentences, ratings)
+    ratings["Global Appeal"] = analyze_global_appeal(sentences, ratings)
+
+    return ratings
+
+# Functions to analyze each criterion using GPT-3
+def analyze_story_premise(sentences, ratings):
+    prompt = f"Rate the story premise of the following screenplay excerpt from 1 to 10:\n{sentences[0]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings["Story Premise"] = rating
+    print(f"Story Premise: {rating}")
+    return rating
+
+def analyze_characters(sentences, ratings):
+    prompt = f"Rate the character development in the following screenplay excerpt from 1 to 10:\n{sentences[1]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Characters'] = rating
+    print(f"Characters: {rating}")
+    return rating
+
+def analyze_genre(sentences, ratings):
+    prompt = f"Rate the marketability and audience appeal of the genre for the following screenplay excerpt from 1 to 10:\n{sentences[2]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Genre'] = rating
+    print(f"Genre: {rating}")
+    return rating
+
+def analyze_structure(sentences, ratings):
+    prompt = f"Rate the screenplay's structure, such as acts, turning points, and pacing from 1 to 10:\n{sentences[3]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Structure'] = rating
+    print(f"Structure: {rating}")
+    return rating
+    
+def analyze_dialogue(sentences, ratings):
+    prompt = f"Rate the quality, authenticity, and effectiveness of the dialogue from 1 to 10:\n{sentences[4]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Dialogue'] = rating
+    print(f"Dialogue: {rating}")
+    return rating
+
+def analyze_emotional_impact(sentences, ratings):
+    prompt = f"Rate the emotional impact of the screenplay from 1 to 10:\n{sentences[5]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Emotional Impact'] = rating
+    print(f"Emotional Impact: {rating}")
+    return rating
+
+def analyze_theme(sentences, ratings):
+    prompt = f"Rate the central theme(s) of the screenplay and its relevance to the target audience from 1 to 10:\n{sentences[6]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Theme'] = rating
+    print(f"Theme: {rating}")
+    return rating
+
+def analyze_visual_imagery(sentences, ratings):
+    prompt = f"Rate the screenplay's potential for creating strong, memorable visual imagery from 1 to 10:\n{sentences[7]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Visual Imagery'] = rating
+    print(f"Visual Imagery: {rating}")
+    return rating
+
+def analyze_marketability(sentences, ratings):
+    prompt = f"Rate the commercial potential of the screenplay from 1 to 10:\n{sentences[8]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Marketability'] = rating
+    print(f"Marketability: {rating}")
+    return rating
+
+def analyze_cultural_relevance(sentences, ratings):
+    prompt = f"Rate the screenplay's cultural relevance and potential for social impact from 1 to 10:\n{sentences[9]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Cultural Relevance'] = rating
+    print(f"Cultural Relevance: {rating}")
+    return rating
+
+def analyze_production_feasibility(sentences, ratings):
+    prompt = f"Rate the practicality of producing the screenplay, considering factors such as budget, locations, and special effects from 1 to 10:\n{sentences[10]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Production Feasibility'] = rating
+    print(f"Production Feasibility: {rating}")
+    return rating
+
+def analyze_global_appeal(sentences, ratings):
+    prompt = f"Rate the potential of the screenplay to resonate with and appeal to international audiences from 1 to 10:\n{sentences[11]}\nRating: "
+    rating = int(gpt3_request(prompt))
+    ratings['Global Appeal'] = rating
+    print(f"Global Appeal: {rating}")
+    return rating
+
+def generate_report(results):
+    # Sort the results by rating in descending order
+    sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+
+    # Initialize the PDF canvas
+    c = canvas.Canvas("analysis_results.pdf", pagesize=letter)
+
+    # Set the title and add it to the PDF
+    title = "Screenplay Analysis Report"
+    c.setFont("Helvetica-Bold", 16)
+    c.drawCentredString(300, 720, title)
+
+    # Iterate over the sorted results and add them to the PDF
+    y = 650
+    for criterion, rating in sorted_results:
+        text = f"{criterion}: {rating}/10"
+        c.setFont("Helvetica", 12)
+        c.drawString(100, y, text)
+        y -= 25
+
+    # Save the PDF
+    c.save()
+
+# Call the functions and generate the report
+sentences = get_screenplay_sentences("screenplay.pdf")
+ratings = {}
+ratings = calculate_ratings(sentences, ratings)
+generate_report(ratings)
